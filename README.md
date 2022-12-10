@@ -7,6 +7,7 @@
 - `ctypes`： Python使用ctypes扩展调用C编译出的动态链接库中的函数
 - `cython_demo`： 使用cython编译python库
 - `pybind11_sum`： 使用pybind11 cpp代码编译出python库
+- `python_api_sum`： 使用Python C API代码编译出python库
 - `swig`： 使用swig c/cpp代码编译出python库
 
 具体使用教程请参考 `tutorial.md`  
