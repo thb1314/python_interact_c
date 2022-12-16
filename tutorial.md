@@ -1,4 +1,4 @@
-# 总结Python和C/C++的交互方式
+# 一文总结Python和C/C++的交互方式
 
 ## 一. 前言
 
@@ -560,8 +560,7 @@ def py_list_sum(buffer):
 shell编译命令如下
 
 ```bash
-# 采用一个低版本的g++
-/usr/bin/gcc main.c -std=c99 $(python3-config --cflags) $(python3-config --ldflags) -fno-lto -o main
+gcc main.c -std=c99 $(python3-config --includes) $(python3-config --ldflags) -fno-lto -o main
 
 ./main
 ```
@@ -572,11 +571,12 @@ shell编译命令如下
 
 pybind11通过简单的C++包装公开了Python类型和函数，这使得我们可以方便的在C++中调用Python代码，而无需借助Python C API。
 
-`demo1.cpp`
+`demo1.cpp`(调用自己写的sum模块)
 
 ```c++
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/embed.h>
 #include <vector>
 #include <iostream>
 
@@ -584,16 +584,16 @@ pybind11通过简单的C++包装公开了Python类型和函数，这使得我们
 namespace py = pybind11;
 
 int main(int argc, char *argv[]) {
+  py::scoped_interpreter guard{}; 
   py::object sum = py::module_::import("sum");
   py::object py_list_sum = sum.attr("py_list_sum");
   int result = py_list_sum(std::vector<int>{1,2,3,4,5}).cast<int>();
-  std::cout << "result:" << result << std::endl;
+  std::cout << "py_list_sum([1,2,3,4,5]) result:" << result << std::endl;
   return 0;
 }
-
 ```
 
-`demo2.cpp`
+`demo2.cpp`(运行python语句)
 
 ```cpp
 #include <iostream>
@@ -614,10 +614,13 @@ int main()
 }
 ```
 
-TODO：这里报错了。后续解决
-
 ```bash
-g++ -std=c++11 -Wl,-Bstatic $(python3 -m pybind11 --includes) $(python3-config --includes) $(python3-config --ldflags) -fno-lto demo2.cpp -o demo2
+# -c表示 只编译不连接 只生成目标文件 .o文件
+# -o 指定生成的可执行文件的名称。如果不使用-o选项则会生成默认可执行文件a.out
+# -g 添加gdb调试选项
+g++ -std=c++11 $(python3 -m pybind11 --includes) demo1.cpp -Wl,-rpath,$(python3-config --prefix)/lib $(python3-config --prefix)/lib/libpython3.7m.so -o demo1 && ./demo1
+
+g++ -std=c++11 $(python3 -m pybind11 --includes) demo2.cpp -Wl,-rpath,$(python3-config --prefix)/lib $(python3-config --prefix)/lib/libpython3.7m.so -o demo2 && ./demo2
 ```
 
 ## 四. 效率对比
@@ -648,8 +651,4 @@ Pybind11特点
 
 - 完美融合c++11特性，无需掌握额外语法
 - 速度相比于Python API欠佳，但是针对比如一些算子开发，当调用耗时不是主要占比的时候，该方式还是值得推荐。
-
-
-
-
 
